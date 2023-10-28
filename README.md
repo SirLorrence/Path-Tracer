@@ -1,6 +1,6 @@
 # Ray Tracer
 
-A Ray Tracer Renderer that is written in C++. This project is for me to learn about how Ray-tracing works.
+A Ray Tracer Renderer using C++. This project is aimed at helping me understand the fundamentals of Ray-tracing and how it works.
 
 ### Site Links: 
 - [Quick thoughts after finishing RayTracingInOneWeekend](https://www.laurencesadler.com/ray-tracer-part-1)
