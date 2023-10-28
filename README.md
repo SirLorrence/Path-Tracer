@@ -1,11 +1,13 @@
 # Ray Tracer
 
-Ray Tracer done in C++. This project is to learning about how Raytracing works. 
+A Ray Tracer Renderer that is written in C++. This project is for me to learn about how Ray-tracing works.
 
+### Site Links: 
+- [Quick thoughts after finishing RayTracingInOneWeekend](https://www.laurencesadler.com/ray-tracer-part-1)
 
 ## Features
 
-* Implementation of all features included in [Peter Shirley's Ray Tracing In One Weekend](https://github.com/RayTracing/raytracing.github.io/blob/master/books/RayTracingInOneWeekend.html)
+* Implementation of all features included in [Ray Tracing In One Weekend](https://github.com/RayTracing/raytracing.github.io/blob/master/books/RayTracingInOneWeekend.html)
   * Spheres
   * Surface Normals
   * Antialiasing
@@ -18,11 +20,11 @@ Ray Tracer done in C++. This project is to learning about how Raytracing works.
 
 
 
-## Installation
+## Installation + Build
 
 This program has been tested on Pop OS and MacOS but should work under any system that has cmake and a C++ compiler installed.
 
-Once project files are download and you are currently in the project directory, you can generate the Makefile using the following command:
+Once project files are downloaded, and you are currently in the project directory, you can generate the Makefile using the following command:
 
 ```
 mkdir build
@@ -34,6 +36,7 @@ Now you can build the binary by running:
 ```
 make
 ```
+To generate the image, run the output binary in the terminal/cmd, which will result in the file appearing in the "images" folder
 
 ## Roadmap
 - Project Refactoring
