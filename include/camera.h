@@ -17,7 +17,7 @@ class Camera {
 public:
   double aspect_ratio = 1.0;  // width/height
   int img_width = 100;        // width in pixels
-  int pixel_sample_size = 10; // amount of random sample per pixel
+  int pixel_sample_size = 10; // amount of random sample per pixel (AA)
   int max_depth = 10;         // recursion depth of ray bounces
 
   double v_fov = 90; 
