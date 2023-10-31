@@ -10,6 +10,7 @@
 #include <limits>
 #include <memory>
 #include <vector>
+#include <thread>
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 constexpr double kPi = 3.1415926535897932385;
@@ -46,5 +47,6 @@ static std::string GetTimeStamp(){
 #include "interval.h"
 #include "ray.h"
 #include "vec3.h"
+#include "thread-manager.h"
 
 #endif

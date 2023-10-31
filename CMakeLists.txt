@@ -20,6 +20,8 @@ target_include_directories(Tinylib PUBLIC lib)
 file (GLOB source_files "${src_dir}/*.cc")
 file (GLOB include_files "${include_dir}/*.h")
 
+add_compile_definitions(MTHREAD)
+
 add_executable(${PROJECT_NAME} ${source_files} ${include_files}) 
 
 target_link_libraries(${PROJECT_NAME} Tinylib)
