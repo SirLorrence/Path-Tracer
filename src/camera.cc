@@ -4,38 +4,35 @@ void Camera::Render(const RenderObject &world) {
   Initialize();
   std::vector<std::uint8_t> pixel_array{};
 
-  // std::chrono::high_resolution_clock::time_point start_render_time =
-  //     std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start_render_time =
+      std::chrono::high_resolution_clock::now();
+  std::vector<std::vector<Color>> pixel_loc(
+      img_height, std::vector<Color>(img_width, Vec3::Zero()));
 
 #ifdef MTHREAD
 
-  std::vector<std::vector<Color>> pixel_loc(
-      img_height, std::vector<Color>(img_width, Vec3::Zero()));
   // Color pixel_loc[img_height][img_width];
-  ThreadPool *pool = new ThreadPool();
-  // ThreadPool pool;
+  // ThreadPool *pool = new ThreadPool();
+  ThreadPool pool;
 
-  for (int y = 0; y < 30; ++y) {
+  for (int y = 0; y < img_height; ++y) {
+    // pool.AssignThread([y] { std::clog << y + 1 << "\n"; });
     // logging the  progress
-    // std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' <<
-    // std::flush;
-    // pool.AssignThread([this, &pixel_loc, y, &world] {
-    pool->AssignThread([y] {
-      std::clog << y + 1 << "\n";
-      // for (int x = 0; x < img_width; ++x) {
-      // Vec3 pixel_color = Vec3::Zero();  // white
-      // // get the aggregated average
-      // for (int sample = 0; sample < pixel_sample_size; ++sample) {
-      //   Ray ray = GetRay(x, y);
-      //   pixel_color += RayColor(ray, max_depth, world);
-      // }
-      // pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
-      // }
-      // std::clog << '\n';
+    std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
+    pool.AssignThread([this, &pixel_loc, y, &world] {
+      for (int x = 0; x < img_width; ++x) {
+        Vec3 pixel_color = Vec3::Zero();  // white
+        // get the aggregated average
+        for (int sample = 0; sample < pixel_sample_size; ++sample) {
+          Ray ray = GetRay(x, y);
+          pixel_color += RayColor(ray, max_depth, world);
+        }
+        pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+      }
     });
   }
-
-  delete pool;
+  // pool.ThreadStatus();
+  // delete pool;
   // for (int y = 0; y < img_height; ++y) {
   //   // logging the  progress
   //   std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' <<
@@ -69,32 +66,37 @@ void Camera::Render(const RenderObject &world) {
         Ray ray = GetRay(x, y);
         pixel_color += RayColor(ray, max_depth, world);
       }
-      Color result = WriteColor(pixel_color, pixel_sample_size);
-      pixel_array.push_back(result.x());
-      pixel_array.push_back(result.y());
-      pixel_array.push_back(result.z());
+      pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+      // Color result = WriteColor(pixel_color, pixel_sample_size);
+      // pixel_array.push_back(result.x());
+      // pixel_array.push_back(result.y());
+      // pixel_array.push_back(result.z());
+    }
+  }
+  for (uint32_t y = 0; y < img_height; y++) {
+    for (uint32_t x = 0; x < img_width; x++) {
+      pixel_array.push_back(pixel_loc[y][x].x());
+      pixel_array.push_back(pixel_loc[y][x].y());
+      pixel_array.push_back(pixel_loc[y][x].z());
     }
   }
 #endif  // MTHREAD
-  // std::chrono::high_resolution_clock::time_point stop_render_time =
-  //     std::chrono::high_resolution_clock::now();
-  // std::clog << "\r Render Done.                    \n";  // extra white space
-  // to
-  //                                                        // overwrite any
-  //                                                        logs
-  // std::chrono::milliseconds render_time_ms =
-  //     std::chrono::duration_cast<std::chrono::milliseconds>(stop_render_time
-  //     -
-  //                                                           start_render_time);
-  // std::clog << "Render Performed in: " << render_time_ms.count() << "ms\n";
-  // std::clog << "PNG Created\n";
-  // std::string image_name{"../images/Ray Render " + GetTimeStamp() + ".png"};
-  // std::ofstream f_out{image_name, std::ios::binary};
-  // TinyPngOut png_image{static_cast<std::uint32_t>(img_width),
-  //                      static_cast<std::uint32_t>(img_height), f_out};
-  // // data() creates a pointer to the array not to the type of vector
-  // png_image.write(pixel_array.data(),
-  //                 static_cast<std::size_t>(img_width * img_height));
+  std::chrono::high_resolution_clock::time_point stop_render_time =
+      std::chrono::high_resolution_clock::now();
+  // extra white space to overwrite any logs
+  std::clog << "\r Render Done.                    \n";
+  std::chrono::milliseconds render_time_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(stop_render_time -
+                                                            start_render_time);
+  std::clog << "Render Performed in: " << render_time_ms.count() << "ms\n";
+  std::clog << "PNG Created\n";
+  std::string image_name{"../images/Ray Render " + GetTimeStamp() + ".png"};
+  std::ofstream f_out{image_name, std::ios::binary};
+  TinyPngOut png_image{static_cast<std::uint32_t>(img_width),
+                       static_cast<std::uint32_t>(img_height), f_out};
+  // data() creates a pointer to the array not to the type of vector
+  png_image.write(pixel_array.data(),
+                  static_cast<std::size_t>(img_width * img_height));
 }
 
 void Camera::Initialize() {
