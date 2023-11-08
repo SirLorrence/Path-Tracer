@@ -3,7 +3,6 @@
 void Camera::Render(const RenderObject &world) {
   Initialize();
   std::vector<std::uint8_t> pixel_array{};
-
   std::chrono::high_resolution_clock::time_point start_render_time =
       std::chrono::high_resolution_clock::now();
   std::vector<std::vector<Color>> pixel_loc(
@@ -31,31 +30,38 @@ void Camera::Render(const RenderObject &world) {
       }
     });
   }
-  // pool.ThreadStatus();
-  // delete pool;
-  // for (int y = 0; y < img_height; ++y) {
-  //   // logging the  progress
-  //   std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' <<
-  //   std::flush; for (int x = 0; x < img_width; ++x) {
-  //     Vec3 pixel_color = Vec3::Zero();  // white
-  //     // get the aggregated average
-  //     for (int sample = 0; sample < pixel_sample_size; ++sample) {
-  //       Ray ray = GetRay(x, y);
-  //       pixel_color += RayColor(ray, max_depth, world);
-  //     }
-  //     pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
-  //   }
-  // }
 
-  for (uint32_t y = 0; y < img_height; y++) {
-    for (uint32_t x = 0; x < img_width; x++) {
-      pixel_array.push_back(pixel_loc[y][x].x());
-      pixel_array.push_back(pixel_loc[y][x].y());
-      pixel_array.push_back(pixel_loc[y][x].z());
-    }
+#elif MTHREAD_V2
+
+ 
+  ThreadPool pool;
+  uint32_t chunk_size{img_height / threads_available};
+  uint32_t start{};
+  uint32_t end{};
+  uint8_t padding{};
+
+  for (uint32_t i = 0; i < threads_available; i++) {
+    start = end;
+    padding = (i == 0) ? 1 : 0;
+    end = start + chunk_size + padding;
+    std::clog << "Thread " << i << ": S: " << start << " E: " << end << '\n';
+     pool.AssignThread([this, &pixel_loc, &world, start, end] {
+      for (uint32_t y = start; y < end; y++) {
+        for (uint32_t x = 0; x < img_width; x++) {
+          Vec3 pixel_color = Vec3::Zero();
+          for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
+            Ray ray = GetRay(x, y);
+            pixel_color += RayColor(ray, max_depth, world);
+          }
+          pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+        }
+      }
+    });
   }
 
-#else
+  pool.CleanThreads();
+
+#else  // Single Threaded
   for (int y = 0; y < img_height; ++y) {
     // logging the  progress
     std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
@@ -67,12 +73,11 @@ void Camera::Render(const RenderObject &world) {
         pixel_color += RayColor(ray, max_depth, world);
       }
       pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
-      // Color result = WriteColor(pixel_color, pixel_sample_size);
-      // pixel_array.push_back(result.x());
-      // pixel_array.push_back(result.y());
-      // pixel_array.push_back(result.z());
     }
   }
+
+#endif  // MTHREAD & MTHREAD_V2
+
   for (uint32_t y = 0; y < img_height; y++) {
     for (uint32_t x = 0; x < img_width; x++) {
       pixel_array.push_back(pixel_loc[y][x].x());
@@ -80,7 +85,6 @@ void Camera::Render(const RenderObject &world) {
       pixel_array.push_back(pixel_loc[y][x].z());
     }
   }
-#endif  // MTHREAD
   std::chrono::high_resolution_clock::time_point stop_render_time =
       std::chrono::high_resolution_clock::now();
   // extra white space to overwrite any logs
@@ -102,7 +106,7 @@ void Camera::Render(const RenderObject &world) {
 void Camera::Initialize() {
   img_height = static_cast<int>(img_width / aspect_ratio);
   img_height = (img_height < 1) ? 1 : img_height;
-
+  std::clog << "W: " << img_width << " H: " << img_height << "\n";
   center = look_from;
 
   // viewport dimensions

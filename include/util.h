@@ -1,9 +1,11 @@
-#ifndef THREAD_TASKS
-#define THREAD_TASKS
+#ifndef UTIL
+#define UTIL
 
 #include <functional>
 
 #include "global.h"
+
+const uint32_t threads_available = static_cast<uint32_t>(std::thread::hardware_concurrency());
 
 // class ThreadGuard {
 //  public:
@@ -98,9 +100,9 @@ class ThreadPool {
   }
 
  private:
-  const uint32_t kPoolSize =
-      static_cast<uint32_t>(std::thread::hardware_concurrency() - 2);
+  const uint32_t kPoolSize = threads_available;
+  // const uint32_t kPoolSize = 4;
   std::vector<std::thread> thread_pool;
 };
 
-#endif  // THREAD_TASKS
+#endif  // UTIL
