@@ -16,13 +16,32 @@ set(include_dir "${PROJECT_SOURCE_DIR}/include/")
 add_library(Tinylib lib/TinyPngOut.cc) # needed when trying to include source files into a library
 target_include_directories(Tinylib PUBLIC lib)
 
+# Packages
+find_package(OpenMP)
+find_package(OpenACC)
+
+
+
 # get the files
 file (GLOB source_files "${src_dir}/*.cc")
 file (GLOB include_files "${include_dir}/*.h")
 
 # add_compile_definitions(MTHREAD)
-add_compile_definitions(MTHREAD_V2)
+# add_compile_definitions(MTHREAD_V2)
+# add_compile_definitions(ENABLE_MP)
+add_compile_definitions(ENABLE_ACC)
 
 add_executable(${PROJECT_NAME} ${source_files} ${include_files}) 
 
+# Library Linkage
+
 target_link_libraries(${PROJECT_NAME} Tinylib)
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
+endif()
+
+if(OpenACC_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} OpenACC::OpenACC_CXX)
+endif()
+

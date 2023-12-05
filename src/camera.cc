@@ -8,6 +8,15 @@ void Camera::Render(const RenderObject &world) {
   std::vector<std::vector<Color>> pixel_loc(
       img_height, std::vector<Color>(img_width, Vec3::Zero()));
 
+#ifdef ENABLE_MP
+  std::clog << "Running OpenMP...\n";
+  #pragma omp parallel for collapse(2)
+#endif
+
+#ifdef ENABLE_ACC
+  std::clog << "Running OpenACC...\n";
+#endif
+
 #ifdef MTHREAD
 
   // Color pixel_loc[img_height][img_width];
@@ -33,7 +42,6 @@ void Camera::Render(const RenderObject &world) {
 
 #elif MTHREAD_V2
 
- 
   ThreadPool pool;
   uint32_t chunk_size{img_height / threads_available};
   uint32_t start{};
@@ -45,7 +53,7 @@ void Camera::Render(const RenderObject &world) {
     padding = (i == 0) ? 1 : 0;
     end = start + chunk_size + padding;
     std::clog << "Thread " << i << ": S: " << start << " E: " << end << '\n';
-     pool.AssignThread([this, &pixel_loc, &world, start, end] {
+    pool.AssignThread([this, &pixel_loc, &world, start, end] {
       for (uint32_t y = start; y < end; y++) {
         for (uint32_t x = 0; x < img_width; x++) {
           Vec3 pixel_color = Vec3::Zero();
@@ -64,7 +72,9 @@ void Camera::Render(const RenderObject &world) {
 #else  // Single Threaded
   for (int y = 0; y < img_height; ++y) {
     // logging the  progress
+    #if !ENABLE_MP && !ENABLE_ACC
     std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
+    #endif
     for (int x = 0; x < img_width; ++x) {
       Vec3 pixel_color = Vec3::Zero();  // white
       // get the aggregated average
