@@ -3,9 +3,11 @@
 
 #include <functional>
 
+#include "CL/opencl.h"
 #include "global.h"
 
-const uint32_t threads_available = static_cast<uint32_t>(std::thread::hardware_concurrency());
+const uint32_t threads_available =
+    static_cast<uint32_t>(std::thread::hardware_concurrency());
 
 // class ThreadGuard {
 //  public:
@@ -104,5 +106,36 @@ class ThreadPool {
   // const uint32_t kPoolSize = 4;
   std::vector<std::thread> thread_pool;
 };
+
+// void CLSetUp() {
+//   // create platform sturcture
+//   cl_platform_id platforms[64];
+//   uint32_t platform_count;
+//   cl_int platform_result = clGetPlatformIDs(64, platforms, &platform_count);
+
+//   if (platform_result != CL_SUCCESS) {
+//     return 1;
+//   }
+
+
+
+//   // get platform/vendor info 
+//   for (uint32_t i = 0; i < platform_count; i++) {
+//     cl_device_id devices[64];
+//     uint32_t device_count;
+//     cl_int device_result = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, sizeof(devices),
+//                                           devices, &device_count);
+
+//     // rating the results
+//     if (device_result == CL_SUCCESS) {
+//       for (size_t j = 0; j < device_count; j++) {
+//         char vender_name[256];
+//         size_t vender_name_length;
+//         cl_int device_info_result = clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR, 256, vender_name, &vender_name_length);
+//         if(device_info_result != CL_SUCCESS && std::string(vender_name).substr(0,vender_name_length) == "NVIDIA")
+//       }
+//     }
+//   }
+// }
 
 #endif  // UTIL
