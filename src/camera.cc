@@ -188,13 +188,13 @@ Ray Camera::GetRay(int coordinate_x, int coordinate_y) {
 }
 
 Vec3 Camera::DefocusDiskSample() const {
-  Vec3 v = RandomInDisk();
+  thread_local Vec3 v = RandomInDisk();
   return center + (v[0] * defocus_disk_x) + (v[1] * defocus_disk_y);
 }
 
 // Return an random point in the surrounding square of the pixel origin.
 Vec3 Camera::PixelSampleSquare() {
-  double random_point_x = -0.5 + RandomDouble01();
-  double random_point_y = -0.5 + RandomDouble01();
+  thread_local double random_point_x = -0.5 + RandomDouble01();
+  thread_local double random_point_y = -0.5 + RandomDouble01();
   return (random_point_x * pixel_delta_x) + (random_point_y * pixel_delta_y);
 }
