@@ -65,9 +65,36 @@ void Camera::Render(const RenderObject &world) {
         }
       }
     });
-  }
+  }600
 
   pool.CleanThreads();
+#elif MTHREAD_TILE
+  ThreadPool pool;
+  int32_t chunk_x = img_width / threads_available;
+  int32_t chunk_y = img_height / threads_available ;
+  for (int y = 0; y < img_height; y+=chunk_y)
+  {
+    std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
+    for (int x = 0; x < img_width; x+=chunk_x)
+    {
+      pool.AssignThread([this,&pixel_loc,x,y,&world,&chunk_x,&chunk_y]
+      {
+        for(int y1 = y; y1 < y + chunk_y; ++y1)
+        {
+          for(int x1 = x; x1 < x + chunk_x; ++x1)
+          {
+            Vec3 pixel_color = Vec3::Zero();
+              for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
+                Ray ray = GetRay(x1, y1);
+                pixel_color += RayColor(ray, max_depth, world);
+              }
+            if (&y1 != nullptr && &x1 != nullptr)
+              pixel_loc[y1][x1] = WriteColor(pixel_color, pixel_sample_size);
+          }
+        }
+      });
+    }
+  }
 
 #else  // Single Threaded
   for (int y = 0; y < img_height; ++y) {
@@ -188,13 +215,13 @@ Ray Camera::GetRay(int coordinate_x, int coordinate_y) {
 }
 
 Vec3 Camera::DefocusDiskSample() const {
-  thread_local Vec3 v = RandomInDisk();
+  Vec3 v = RandomInDisk();
   return center + (v[0] * defocus_disk_x) + (v[1] * defocus_disk_y);
 }
 
 // Return an random point in the surrounding square of the pixel origin.
 Vec3 Camera::PixelSampleSquare() {
-  thread_local double random_point_x = -0.5 + RandomDouble01();
-  thread_local double random_point_y = -0.5 + RandomDouble01();
+  double random_point_x = -0.5 + RandomDouble01();
+  double random_point_y = -0.5 + RandomDouble01();
   return (random_point_x * pixel_delta_x) + (random_point_y * pixel_delta_y);
 }

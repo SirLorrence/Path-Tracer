@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 #include <thread>
+#include <random>
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 constexpr double kPi = 3.1415926535897932385;
@@ -18,7 +19,12 @@ constexpr double kPi = 3.1415926535897932385;
 inline double DegreesToRadians(double degrees) { return degrees * kPi / 180.0; }
 
 // returns a value between 0 - 1
-inline double RandomDouble01() { return rand() / (RAND_MAX + 1.0); }
+inline double RandomDouble01()
+{
+  thread_local static std::uniform_real_distribution<double> distribution (0.0,1.0);
+  thread_local static std::mt19937 generator;
+  return distribution(generator);
+}
 
 inline double RandomDouble(double min, double max) {
   return min + (max - min) * RandomDouble01();

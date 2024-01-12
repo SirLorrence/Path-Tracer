@@ -103,7 +103,7 @@ class ThreadPool {
 
  private:
   const uint32_t kPoolSize = threads_available;
-  // const uint32_t kPoolSize = 4;
+  // const uint32_t kPoolSize = 1;
   std::vector<std::thread> thread_pool;
 };
 

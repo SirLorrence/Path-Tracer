@@ -19,8 +19,9 @@ class Lambertian : public Material {
     Lambertian(const Color &color) : albedo(color) {}
     
     bool Scatter(const Ray &input_ray, const HitRecord &hit_rec, Color &attenuation, Ray &scattered_ray) const override {
+     //thread_local  Vec3 scatter_direction = hit_rec.normal + RandomNormalizedVec3();
       Vec3 scatter_direction = hit_rec.normal + RandomNormalizedVec3();
-      
+
       if(scatter_direction.NearZero())
         scatter_direction = hit_rec.normal;
       
@@ -40,7 +41,10 @@ class Metal : public Material {
 
    bool Scatter(const Ray &input_ray, const HitRecord &hit_rec, Color &attenuation, Ray &scattered_ray) const override {
     Vec3 reflected = Reflect(Normalized(input_ray.Direction()),hit_rec.normal);
-    scattered_ray = Ray(hit_rec.point, reflected + fuzz * RandomNormalizedVec3());
+    // thread_local Vec3 r = RandomNormalizedVec3();
+    // Vec3 dir = reflected + fuzz * r;
+    Vec3 dir = reflected + fuzz * RandomNormalizedVec3();
+    scattered_ray = Ray(hit_rec.point, dir);
     attenuation = albedo;
     return (DotProduct(scattered_ray.Direction(), hit_rec.normal));
    }

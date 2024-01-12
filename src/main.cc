@@ -19,7 +19,7 @@ int main() {
   //     Vec3 center (i + 0.9 * RandomDouble01(), 0.2, j + 0.9 * RandomDouble01());
   //     if((center - Vec3(4,0.2,0)).Length() > 0.9){
   //       std::shared_ptr<Material> sphere_material;
-
+  //
   //       if(choose_material < 0.8){
   //         Color albedo  = Color::Random() * Color::Random();
   //         sphere_material = std::make_shared<Lambertian>(albedo);
