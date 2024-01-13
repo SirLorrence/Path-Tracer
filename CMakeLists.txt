@@ -26,10 +26,11 @@ find_package(OpenCL)
 file (GLOB source_files "${src_dir}/*.cc")
 file (GLOB include_files "${include_dir}/*.h")
 
-add_compile_definitions(MTHREAD)
-# add_compile_definitions(MTHREAD_V2)
+#add_compile_definitions(MTHREAD)
+#add_compile_definitions(MTHREAD_V2)
 # add_compile_definitions(ENABLE_MP)
 # add_compile_definitions(ENABLE_ACC)
+add_compile_definitions(MTHREAD_TILE)
 
 add_executable(${PROJECT_NAME} ${source_files} ${include_files}) 
 

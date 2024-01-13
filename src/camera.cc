@@ -17,12 +17,11 @@ void Camera::Render(const RenderObject &world) {
   std::clog << "Running OpenACC...\n";
 #endif
 
-#ifdef MTHREAD
+#ifdef MTHREAD // this method is no good
 
   // Color pixel_loc[img_height][img_width];
   // ThreadPool *pool = new ThreadPool();
   ThreadPool pool;
-
   for (int y = 0; y < img_height; ++y) {
     // pool.AssignThread([y] { std::clog << y + 1 << "\n"; });
     // logging the  progress
@@ -65,13 +64,20 @@ void Camera::Render(const RenderObject &world) {
         }
       }
     });
-  }600
+  }
 
   pool.CleanThreads();
 #elif MTHREAD_TILE
   ThreadPool pool;
-  int32_t chunk_x = img_width / threads_available;
-  int32_t chunk_y = img_height / threads_available ;
+  if (threads_available < 2)
+  {
+    std::cerr << "Not enough available cores/threads \n";
+    std::exit(EXIT_FAILURE);
+  }
+  // sqrt is exspensive but got the job done
+  int32_t chunk_x = img_width/threads_available ;
+  int32_t chunk_y = img_height/threads_available;
+  std::clog<< "cx: " << chunk_x << " cy:" << chunk_y << '\n';
   for (int y = 0; y < img_height; y+=chunk_y)
   {
     std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
@@ -81,21 +87,22 @@ void Camera::Render(const RenderObject &world) {
       {
         for(int y1 = y; y1 < y + chunk_y; ++y1)
         {
-          for(int x1 = x; x1 < x + chunk_x; ++x1)
-          {
-            Vec3 pixel_color = Vec3::Zero();
-              for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
-                Ray ray = GetRay(x1, y1);
-                pixel_color += RayColor(ray, max_depth, world);
+          if(y1 >= img_height) break;
+            for(int x1 = x; x1 < x + chunk_x; ++x1)
+            {
+              if(x1 >= img_width) break;
+                Vec3 pixel_color = Vec3::Zero();
+                for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
+                 Ray ray = GetRay(x1, y1);
+                 pixel_color += RayColor(ray, max_depth, world);
               }
-            if (&y1 != nullptr && &x1 != nullptr)
-              pixel_loc[y1][x1] = WriteColor(pixel_color, pixel_sample_size);
-          }
+                pixel_loc[y1][x1] = WriteColor(pixel_color, pixel_sample_size);
+            }
         }
       });
     }
   }
-
+  pool.CleanThreads();
 #else  // Single Threaded
   for (int y = 0; y < img_height; ++y) {
     // logging the  progress
