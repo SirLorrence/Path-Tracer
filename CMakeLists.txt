@@ -18,31 +18,23 @@ target_include_directories(Tinylib PUBLIC lib)
 
 # Packages
 find_package(OpenMP)
-find_package(OpenCL)
-
-
 
 # get the files
 file (GLOB source_files "${src_dir}/*.cc")
 file (GLOB include_files "${include_dir}/*.h")
 
+# === Remove # to enable a Multi-threading feature or add with a compile command durning the CMAKE build process
+
 #add_compile_definitions(MTHREAD)
 #add_compile_definitions(MTHREAD_V2)
-# add_compile_definitions(ENABLE_MP)
-# add_compile_definitions(ENABLE_ACC)
-add_compile_definitions(MTHREAD_TILE)
+#add_compile_definitions(ENABLE_MP)
+#add_compile_definitions(MTHREAD_TILE)
 
 add_executable(${PROJECT_NAME} ${source_files} ${include_files}) 
 
 # Library Linkage
-
 target_link_libraries(${PROJECT_NAME} Tinylib)
 
 if(OpenMP_CXX_FOUND)
     target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
 endif()
-
-if(OpenCL_CXX_FOUND)
-    target_link_libraries(${PROJECT_NAME} OpenCL::OpenCL_CXX)
-endif()
-

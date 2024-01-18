@@ -13,10 +13,6 @@ void Camera::Render(const RenderObject &world) {
   #pragma omp parallel for collapse(2)
 #endif
 
-#ifdef ENABLE_ACC
-  std::clog << "Running OpenACC...\n";
-#endif
-
 #ifdef MTHREAD // this method is no good
 
   // Color pixel_loc[img_height][img_width];
