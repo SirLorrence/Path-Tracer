@@ -1,8 +1,6 @@
-#ifndef HITTABLE_LIST_H
-#define HITTABLE_LIST_H
+#pragma once
 
 #include "interval.h"
-
 #include "render_object.h"
 
 #include <memory>
@@ -18,22 +16,18 @@ struct HittableList : public RenderObject {
 
   void Add(std::shared_ptr<RenderObject> obj) { render_objects.push_back(obj); }
 
-  bool Hit(const Ray &ray, Interval ray_t,
-           HitRecord &hit_record) const override {
-    HitRecord temp_record;
-    bool hit_anything = false;
-    double closest = ray_t.max;
+  bool Hit(const Ray& ray, Interval rayScale, HitRecord& hitRecord) const override {
+    HitRecord tempRecord;
+    bool hitAnything = false;
+    double closest = rayScale.m_max;
 
-    // TODO: make this an Object Type
-    for (const auto &obj : render_objects) {
-      if (obj->Hit(ray, Interval(ray_t.min, closest), temp_record)) {
-        hit_anything = true;
-        closest = temp_record.scaler;
-        hit_record = temp_record;
+    for (const auto& obj : render_objects) {
+      if (obj->Hit(ray, Interval(rayScale.m_min, closest), tempRecord)) {
+        hitAnything = true;
+        closest = tempRecord.m_scaler;
+        hitRecord = tempRecord;
       }
     }
-    return hit_anything;
+    return hitAnything;
   }
 };
-
-#endif

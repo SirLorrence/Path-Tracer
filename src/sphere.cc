@@ -1,32 +1,32 @@
 #include "../include/sphere.h"
 
-bool Sphere::Hit(const Ray &ray, Interval ray_t, HitRecord &hit_record) const {
-  Vec3 origin_center = ray.Origin() - center;
+bool Sphere::Hit(const Ray& ray, Interval rayScale, HitRecord& hitRecord) const {
+  Vec3 originCenter = ray.Origin() - m_center;
   double a = ray.Direction().LengthSquared();
   // half of b
-  double b = DotProduct(origin_center, ray.Direction());
-  double c = origin_center.LengthSquared() - radius * radius;
+  double b = DotProduct(originCenter, ray.Direction());
+  double c = originCenter.LengthSquared() - m_radius * m_radius;
 
   double discriminant = b * b - a * c;
 
   if (discriminant < 0)
     return false;
 
-  double square_root_of_discriminant = std::sqrt(discriminant);
+  double squareRootOfDiscriminant = std::sqrt(discriminant);
 
   // Find the nearest root that lies in the acceptable range
-  double root = (-b - square_root_of_discriminant) / a;
-  if (!ray_t.Surrounds(root)) {
-    root = (-b + square_root_of_discriminant) / a;
-    if (!ray_t.Surrounds(root))
+  double root = (-b - squareRootOfDiscriminant) / a;
+  if (!rayScale.Surrounds(root)) {
+    root = (-b + squareRootOfDiscriminant) / a;
+    if (!rayScale.Surrounds(root))
       return false;
   }
 
-  hit_record.scaler = root;
-  hit_record.point = ray.Scaler(hit_record.scaler);
-  Vec3 outward_normal = (hit_record.point - center) / radius;
-  hit_record.SetFaceNormal(ray, outward_normal);
-  hit_record.material = mat;
+  hitRecord.m_scaler = root;
+  hitRecord.m_point = ray.Scaler(hitRecord.m_scaler);
+  Vec3 outwardNormal = (hitRecord.m_point - m_center) / m_radius;
+  hitRecord.SetFaceNormal(ray, outwardNormal);
+  hitRecord.m_material = m_mat;
 
   return true;
 }

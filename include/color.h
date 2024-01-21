@@ -1,22 +1,21 @@
-#ifndef COLOR_H
-#define COLOR_H
-
+#pragma once
 #include <iostream>
-
 #include "interval.h"
 
 using Color = Vec3;
-inline double LinearToGamma(double linear_component) {
-  return std::sqrt(linear_component);
+
+inline double LinearToGamma(double linearComponent) {
+  return std::sqrt(linearComponent);
 }
-inline Color WriteColor(Color pixel_color, int pixel_sample_size) {
-  std::uint8_t color_range = std::numeric_limits<std::uint8_t>::max(); // max color range for TinyPng
-  double r = pixel_color.x();
-  double g = pixel_color.y();
-  double b = pixel_color.z();
+
+inline Color WriteColor(Color pixelColor, int pixelSampleSize) {
+  std::uint8_t colorRange = std::numeric_limits<std::uint8_t>::max(); // max color range for TinyPng
+  double r = pixelColor.x();
+  double g = pixelColor.y();
+  double b = pixelColor.z();
 
   // divbing the color by n samples
-  double scale = 1.0 / pixel_sample_size;
+  double scale = 1.0 / pixelSampleSize;
   r *= scale;
   b *= scale;
   g *= scale;
@@ -26,11 +25,11 @@ inline Color WriteColor(Color pixel_color, int pixel_sample_size) {
   g = LinearToGamma(g);
   b = LinearToGamma(b);
 
-  static const Interval color_intensity(0.000, 0.999);
+  static const Interval intensity(0.000, 0.999);
 
-  return {color_range * color_intensity.Clamp(r),
-          color_range * color_intensity.Clamp(g),
-          color_range * color_intensity.Clamp(b)};
+  return {
+    colorRange * intensity.Clamp(r),
+    colorRange * intensity.Clamp(g),
+    colorRange * intensity.Clamp(b)
+  };
 }
-
-#endif

@@ -1,12 +1,10 @@
 #include "../include/camera.h"
 
-void Camera::Render(const RenderObject &world) {
+void Camera::Render(const RenderObject& world) {
   Initialize();
-  std::vector<std::uint8_t> pixel_array{};
-  std::chrono::high_resolution_clock::time_point start_render_time =
-      std::chrono::high_resolution_clock::now();
-  std::vector<std::vector<Color>> pixel_loc(
-      img_height, std::vector<Color>(img_width, Vec3::Zero()));
+  std::vector<std::uint8_t> pixelArray{};
+  std::chrono::high_resolution_clock::time_point startRenderTime = std::chrono::high_resolution_clock::now();
+  std::vector<std::vector<Color>> pixelLocation(m_imgHeight, std::vector<Color>(m_imgWidth, Vec3::Zero()));
 
 #ifdef ENABLE_MP
   std::clog << "Running OpenMP...\n";
@@ -14,49 +12,43 @@ void Camera::Render(const RenderObject &world) {
 #endif
 
 #ifdef MTHREAD // this method is no good
-
-  // Color pixel_loc[img_height][img_width];
-  // ThreadPool *pool = new ThreadPool();
   ThreadPool pool;
-  for (int y = 0; y < img_height; ++y) {
-    // pool.AssignThread([y] { std::clog << y + 1 << "\n"; });
+  for (uint32_t y = 0; y < m_imgHeight; ++y) {
     // logging the  progress
-    std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
-    pool.AssignThread([this, &pixel_loc, y, &world] {
-      for (int x = 0; x < img_width; ++x) {
-        Vec3 pixel_color = Vec3::Zero();  // white
+    std::clog << "\r Lines Remaining:" << (m_imgHeight - y) << ' ' << std::flush;
+    pool.AssignThread([this, &pixelLocation, y, &world] {
+      for (uint32_t x = 0; x < m_imgWidth; ++x) {
+        Vec3 pixelColor = Vec3::Zero(); // white
         // get the aggregated average
-        for (int sample = 0; sample < pixel_sample_size; ++sample) {
+        for (uint32_t sample = 0; sample < m_pixelSampleSize; ++sample) {
           Ray ray = GetRay(x, y);
-          pixel_color += RayColor(ray, max_depth, world);
+          pixelColor += RayColor(ray, m_maxDepth, world);
         }
-        pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+        pixelLocation[y][x] = WriteColor(pixelColor, m_pixelSampleSize);
       }
     });
   }
-
 #elif MTHREAD_V2
-
   ThreadPool pool;
-  uint32_t chunk_size{img_height / threads_available};
+  uint32_t chunkSize{m_imgHeight / g_ThreadsAvailable};
   uint32_t start{};
   uint32_t end{};
   uint8_t padding{};
 
-  for (uint32_t i = 0; i < threads_available; i++) {
+  for (uint32_t i = 0; i < g_ThreadsAvailable; i++) {
     start = end;
     padding = (i == 0) ? 1 : 0;
-    end = start + chunk_size + padding;
+    end = start + chunkSize + padding;
     std::clog << "Thread " << i << ": S: " << start << " E: " << end << '\n';
-    pool.AssignThread([this, &pixel_loc, &world, start, end] {
+    pool.AssignThread([this, &pixelLocation, &world, start, end] {
       for (uint32_t y = start; y < end; y++) {
-        for (uint32_t x = 0; x < img_width; x++) {
-          Vec3 pixel_color = Vec3::Zero();
-          for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
+        for (uint32_t x = 0; x < m_imgWidth; x++) {
+          Vec3 pixelColor = Vec3::Zero();
+          for (uint32_t sample = 0; sample < m_pixelSampleSize; sample++) {
             Ray ray = GetRay(x, y);
-            pixel_color += RayColor(ray, max_depth, world);
+            pixelColor += RayColor(ray, m_maxDepth, world);
           }
-          pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+          pixelLocation[y][x] = WriteColor(pixelColor, m_pixelSampleSize);
         }
       }
     });
@@ -65,132 +57,122 @@ void Camera::Render(const RenderObject &world) {
   pool.CleanThreads();
 #elif MTHREAD_TILE
   ThreadPool pool;
-  if (threads_available < 2)
-  {
+  if (g_ThreadsAvailable < 2) {
     std::cerr << "Not enough available cores/threads \n";
     std::exit(EXIT_FAILURE);
   }
   // sqrt is exspensive but got the job done
-  int32_t chunk_x = img_width/threads_available ;
-  int32_t chunk_y = img_height/threads_available;
-  std::clog<< "cx: " << chunk_x << " cy:" << chunk_y << '\n';
-  for (int y = 0; y < img_height; y+=chunk_y)
-  {
-    std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
-    for (int x = 0; x < img_width; x+=chunk_x)
-    {
-      pool.AssignThread([this,&pixel_loc,x,y,&world,&chunk_x,&chunk_y]
-      {
-        for(int y1 = y; y1 < y + chunk_y; ++y1)
-        {
-          if(y1 >= img_height) break;
-            for(int x1 = x; x1 < x + chunk_x; ++x1)
-            {
-              if(x1 >= img_width) break;
-                Vec3 pixel_color = Vec3::Zero();
-                for (uint32_t sample = 0; sample < pixel_sample_size; sample++) {
-                 Ray ray = GetRay(x1, y1);
-                 pixel_color += RayColor(ray, max_depth, world);
-              }
-                pixel_loc[y1][x1] = WriteColor(pixel_color, pixel_sample_size);
+  uint32_t chunkX = m_imgWidth / g_ThreadsAvailable;
+  uint32_t chunkY = m_imgHeight / g_ThreadsAvailable;
+  std::clog << "cx: " << chunkX << " cy:" << chunkY << '\n';
+  for (uint32_t y = 0; y < m_imgHeight; y += chunkY) {
+    std::clog << "\r Lines Remaining:" << (m_imgHeight - y) << ' ' << std::flush;
+    for (uint32_t x = 0; x < m_imgWidth; x += chunkX) {
+      pool.AssignThread([this,&pixelLocation,x,y,&world,&chunkX,&chunkY] {
+        for (uint32_t y1 = y; y1 < y + chunkY; ++y1) {
+          if (y1 >= m_imgHeight) break;
+          for (uint32_t x1 = x; x1 < x + chunkX; ++x1) {
+            if (x1 >= m_imgWidth) break;
+            Vec3 pixelColor = Vec3::Zero();
+            for (uint32_t sample = 0; sample < m_pixelSampleSize; sample++) {
+              Ray ray = GetRay(x1, y1);
+              pixelColor += RayColor(ray, m_maxDepth, world);
             }
+            pixelLocation[y1][x1] = WriteColor(pixelColor, m_pixelSampleSize);
+          }
         }
       });
     }
   }
   pool.CleanThreads();
 #else  // Single Threaded
-  for (int y = 0; y < img_height; ++y) {
+  for (uint32_t y = 0; y < m_imgHeight; ++y) {
     // logging the  progress
-    #if !ENABLE_MP && !ENABLE_ACC
-    std::clog << "\r Lines Remaining:" << (img_height - y) << ' ' << std::flush;
-    #endif
-    for (int x = 0; x < img_width; ++x) {
-      Vec3 pixel_color = Vec3::Zero();  // white
+#if !ENABLE_MP && !ENABLE_ACC
+    std::clog << "\r Lines Remaining:" << (m_imgHeight - y) << ' ' << std::flush;
+#endif
+    for (uint32_t x = 0; x < m_imgWidth; ++x) {
+      Vec3 pixelColor = Vec3::Zero(); // white
       // get the aggregated average
-      for (int sample = 0; sample < pixel_sample_size; ++sample) {
+      for (uint32_t sample = 0; sample < m_pixelSampleSize; ++sample) {
         Ray ray = GetRay(x, y);
-        pixel_color += RayColor(ray, max_depth, world);
+        pixelColor += RayColor(ray, m_maxDepth, world);
       }
-      pixel_loc[y][x] = WriteColor(pixel_color, pixel_sample_size);
+      pixelLocation[y][x] = WriteColor(pixelColor, m_pixelSampleSize);
     }
   }
 
 #endif  // MTHREAD & MTHREAD_V2
 
-  for (uint32_t y = 0; y < img_height; y++) {
-    for (uint32_t x = 0; x < img_width; x++) {
-      pixel_array.push_back(pixel_loc[y][x].x());
-      pixel_array.push_back(pixel_loc[y][x].y());
-      pixel_array.push_back(pixel_loc[y][x].z());
+  for (uint32_t y = 0; y < m_imgHeight; y++) {
+    for (uint32_t x = 0; x < m_imgWidth; x++) {
+      pixelArray.push_back(static_cast<uint8_t>(pixelLocation[y][x].x()));
+      pixelArray.push_back(static_cast<uint8_t>(pixelLocation[y][x].y()));
+      pixelArray.push_back(static_cast<uint8_t>(pixelLocation[y][x].z()));
     }
   }
-  std::chrono::high_resolution_clock::time_point stop_render_time =
-      std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point stopRenderTime = std::chrono::high_resolution_clock::now();
   // extra white space to overwrite any logs
   std::clog << "\r Render Done.                    \n";
   std::chrono::milliseconds render_time_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(stop_render_time -
-                                                            start_render_time);
+    std::chrono::duration_cast<std::chrono::milliseconds>(stopRenderTime - startRenderTime);
   std::clog << "Render Performed in: " << render_time_ms.count() << "ms\n";
   std::clog << "PNG Created\n";
   std::string image_name{"../images/Ray Render " + GetTimeStamp() + ".png"};
   std::ofstream f_out{image_name, std::ios::binary};
-  TinyPngOut png_image{static_cast<std::uint32_t>(img_width),
-                       static_cast<std::uint32_t>(img_height), f_out};
+  TinyPngOut png_image{
+    static_cast<std::uint32_t>(m_imgWidth),
+    static_cast<std::uint32_t>(m_imgHeight), f_out
+  };
   // data() creates a pointer to the array not to the type of vector
-  png_image.write(pixel_array.data(),
-                  static_cast<std::size_t>(img_width * img_height));
+  png_image.write(pixelArray.data(), static_cast<std::size_t>(m_imgWidth * m_imgHeight));
 }
 
 void Camera::Initialize() {
-  img_height = static_cast<int>(img_width / aspect_ratio);
-  img_height = (img_height < 1) ? 1 : img_height;
-  std::clog << "W: " << img_width << " H: " << img_height << "\n";
-  center = look_from;
+  m_imgHeight = static_cast<int>(m_imgWidth / m_aspectRatio);
+  m_imgHeight = (m_imgHeight < 1) ? 1 : m_imgHeight;
+  std::clog << "W: " << m_imgWidth << " H: " << m_imgHeight << "\n";
+  m_center = m_lookFrom;
 
   // viewport dimensions
   // double focal_length = (look_from - look_at).Length();
-  double theta = DegreesToRadians(v_fov);
+  double theta = DegreesToRadians(m_viewFOV);
   double h = std::tan(theta / 2);
-  double viewpoint_height = 2 * h * focus_distance;
-  double viewpoint_width =
-      viewpoint_height * (static_cast<double>(img_width) / img_height);
+  double viewpointHeight = 2 * h * m_focusDistance;
+  double viewpointWidth =
+    viewpointHeight * (static_cast<double>(m_imgWidth) / m_imgHeight);
 
   // calculate basis vectors for camera frame
-  w = Normalized(look_from - look_at);
-  u = Normalized(CrossProduct(view_up, w));
-  v = CrossProduct(w, u);
+  m_w = Normalized(m_lookFrom - m_lookAt);
+  m_u = Normalized(CrossProduct(m_viewUp, m_w));
+  m_v = CrossProduct(m_w, m_u);
 
-  Vec3 viewport_x = viewpoint_width * u;
-  Vec3 viewport_y = viewpoint_height * -v;
+  Vec3 viewportX = viewpointWidth * m_u;
+  Vec3 viewportY = viewpointHeight * -m_v;
 
-  pixel_delta_x = viewport_x / img_width;
-  pixel_delta_y = viewport_y / img_height;
+  m_pixelDeltaX = viewportX / m_imgWidth;
+  m_pixelDeltaY = viewportY / m_imgHeight;
 
-  Vec3 viewport_upper_left =
-      center - (focus_distance * w) - viewport_x / 2 - viewport_y / 2;
-  pixel_00_loc = viewport_upper_left + 0.5 * (pixel_delta_x + pixel_delta_y);
+  Vec3 viewportUpperLeft = m_center - (m_focusDistance * m_w) - viewportX / 2 - viewportY / 2;
+  m_pixel00Loc = viewportUpperLeft + 0.5 * (m_pixelDeltaX + m_pixelDeltaY);
 
   // defocus disk
-  double defocus_radius =
-      focus_distance * std::tan(DegreesToRadians(defocus_angle / 2));
-  defocus_disk_x = u * defocus_radius;
-  defocus_disk_y = v * defocus_radius;
+  double defocusRadius = m_focusDistance * std::tan(DegreesToRadians(m_defocusAngle / 2));
+  m_DefocusDiskX = m_u * defocusRadius;
+  m_defocusDiskY = m_v * defocusRadius;
 }
 
-Color Camera::RayColor(const Ray &ray, int depth,
-                       const RenderObject &world) const {
-  HitRecord hit_record;
+Color Camera::RayColor(const Ray& ray, int depth, const RenderObject& world) const {
+  HitRecord hitRecord;
 
   // no more light is gathered.
   if (depth <= 0) return Color(0, 0, 0);
 
-  if (world.Hit(ray, Interval(0.001, kInfinity), hit_record)) {
-    Ray scatted_ray;
+  if (world.Hit(ray, Interval(0.001, kInfinity), hitRecord)) {
+    Ray scatteredRay;
     Color attenuation;
-    if (hit_record.material->Scatter(ray, hit_record, attenuation, scatted_ray))
-      return attenuation * RayColor(scatted_ray, depth - 1, world);
+    if (hitRecord.m_material->Scatter(ray, hitRecord, attenuation, scatteredRay))
+      return attenuation * RayColor(scatteredRay, depth - 1, world);
     return Color(0, 0, 0);
 
     // Diffused
@@ -201,30 +183,28 @@ Color Camera::RayColor(const Ray &ray, int depth,
     //    world);
   }
 
-  Vec3 unit_direction = Normalized(ray.Direction());
-  double blended_value = 0.5 * (unit_direction.y() + 1.0);
-  return (1.0 - blended_value) * Color(1.0, 1.0, 1.0) +
-         blended_value * Color(0.5, 0.7, 1.0);
+  Vec3 unitDirection = Normalized(ray.Direction());
+  double blendedValue = 0.5 * (unitDirection.y() + 1.0);
+  return (1.0 - blendedValue) * Color(1.0, 1.0, 1.0) +
+    blendedValue * Color(0.5, 0.7, 1.0);
 }
 
-Ray Camera::GetRay(int coordinate_x, int coordinate_y) {
-  Vec3 pixel_center = pixel_00_loc + (coordinate_x * pixel_delta_x) +
-                      (coordinate_y * pixel_delta_y);
-  Vec3 pixel_sample = pixel_center + PixelSampleSquare();
-
-  Vec3 origin = (defocus_angle <= 0) ? center : DefocusDiskSample();
-  Vec3 direction = pixel_sample - origin;
+Ray Camera::GetRay(int coordinateX, int coordinateY) {
+  Vec3 pixelCenter = m_pixel00Loc + (coordinateX * m_pixelDeltaX) + (coordinateY * m_pixelDeltaY);
+  Vec3 pixelSample = pixelCenter + PixelSampleSquare();
+  Vec3 origin = (m_defocusAngle <= 0) ? m_center : DefocusDiskSample();
+  Vec3 direction = pixelSample - origin;
   return Ray(origin, direction);
 }
 
 Vec3 Camera::DefocusDiskSample() const {
   Vec3 v = RandomInDisk();
-  return center + (v[0] * defocus_disk_x) + (v[1] * defocus_disk_y);
+  return m_center + (v[0] * m_DefocusDiskX) + (v[1] * m_defocusDiskY);
 }
 
 // Return an random point in the surrounding square of the pixel origin.
 Vec3 Camera::PixelSampleSquare() {
-  double random_point_x = -0.5 + RandomDouble01();
-  double random_point_y = -0.5 + RandomDouble01();
-  return (random_point_x * pixel_delta_x) + (random_point_y * pixel_delta_y);
+  double randomPointX = -0.5 + RandomDouble01();
+  double randomPointY = -0.5 + RandomDouble01();
+  return (randomPointX * m_pixelDeltaX) + (randomPointY * m_pixelDeltaY);
 }

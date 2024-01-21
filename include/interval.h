@@ -1,31 +1,29 @@
-#ifndef INTERVAL_H
-#define INTERVAL_H
+#pragma once
 
 #include "global.h"
 
 struct Interval {
-  double min;
-  double max;
   // Default
-  Interval() : min(+kInfinity), max(-kInfinity) {}
-  Interval(double Min, double Max) : min(Min), max(Max) {}
+  Interval() : m_min(+kInfinity), m_max(-kInfinity) {}
+  Interval(double min, double max) : m_min(min), m_max(max) {}
 
-  bool Contains(double value) { return min <= value && max >= value; }
-  bool Surrounds(double value) { return min < value && max > value; }
+  bool Contains(double value) { return m_min <= value && m_max >= value; }
+  bool Surrounds(double value) { return m_min < value && m_max > value; }
 
   double Clamp(double value) const {
-    if (value < min)
-      return min;
-    if (value > max)
-      return max;
+    if (value < m_min)
+      return m_min;
+    if (value > m_max)
+      return m_max;
     return value;
   }
 
   static const Interval kEmpty;
   static const Interval kUniverse;
+
+  double m_min;
+  double m_max;
 };
 
 const static Interval kEmpty(+kInfinity, -kInfinity);
 const static Interval kUniverse(-kInfinity, +kInfinity);
-
-#endif
